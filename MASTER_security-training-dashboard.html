@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Security Training Feedback Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', Consolas, monospace;
+            background: #000;
+            color: #00ff00;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 255, 0, 0.03) 2px,
+                    rgba(0, 255, 0, 0.03) 4px
+                );
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 
+                0 0 10px #00ff00,
+                0 0 20px #00ff00;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.8;
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination-controls button {
+            background: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+        
+        .pagination-controls button:hover {
+            background: #00ff00;
+            color: #000;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        .pagination-controls button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .pagination-controls button:disabled:hover {
+            background: #000;
+            color: #00ff00;
+            box-shadow: none;
+        }
+        
+        .session-selector {
+            background: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .session-selector option {
+            background: #000;
+            color: #00ff00;
+        }
+        
+        .current-session {
+            color: #00ff00;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .centered-card {
+            grid-column: 1 / -1;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(0, 20, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 0;
+            padding: 25px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.5),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 0 30px rgba(0, 255, 0, 0.8),
+                inset 0 0 30px rgba(0, 255, 0, 0.2);
+            background: rgba(0, 40, 0, 0.9);
+        }
+        
+        .card h2 {
+            color: #00ff00;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .stat-box {
+            background: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .stat-box h3 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        .stat-box p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .participants-list {
+            max-height: 400px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #00ff00 #001100;
+        }
+        
+        .participants-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .participants-list::-webkit-scrollbar-track {
+            background: #001100;
+        }
+        
+        .participants-list::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 0;
+        }
+        
+        .participant-item {
+            background: rgba(0, 40, 0, 0.6);
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #00ff00;
+            transition: all 0.3s ease;
+        }
+        
+        .participant-item:hover {
+            background: rgba(0, 60, 0, 0.8);
+            transform: translateX(5px);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+        
+        .participant-item h4 {
+            color: #00ff00;
+            margin-bottom: 5px;
+            font-size: 1.2em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .participant-item p {
+            color: #00cc00;
+            font-size: 0.9em;
+            line-height: 1.5;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .topic-tag {
+            display: inline-block;
+            background: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 5px 10px;
+            font-size: 0.85em;
+            margin: 5px 5px 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .topic-tag:hover {
+            background: #00ff00;
+            color: #000;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        .rating-display {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .star {
+            color: #00ff00;
+            font-size: 1.2em;
+            text-shadow: 0 0 5px #00ff00;
+        }
+        
+        .insights-section {
+            background: rgba(0, 20, 0, 0.8);
+            border: 1px solid #00ff00;
+            padding: 25px;
+            margin-top: 20px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.5),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+        
+        .insight-item {
+            background: #000;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .insight-item:hover {
+            background: rgba(0, 40, 0, 0.8);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+        }
+        
+        .insight-icon {
+            font-size: 2em;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        strong {
+            color: #00ff00;
+            text-shadow: 0 0 3px #00ff00;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 100px 20px;
+            color: #00ff00;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ [ DIGITAL SECURITY TRAINING FEEDBACK ]</h1>
+            <p id="trainingDateDisplay">// Loading... //</p>
+        </div>
+        
+        <div class="pagination-controls">
+            <button id="prevBtn" onclick="previousSession()">← Previous</button>
+            <div class="current-session">
+                <select id="sessionSelector" class="session-selector" onchange="loadSession(this.value)">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+            <button id="nextBtn" onclick="nextSession()">Next →</button>
+        </div>
+        
+        <div id="dashboardContent">
+            <!-- Dashboard content will be dynamically loaded here -->
+        </div>
+    </div>
+    
+    <script>
+        // TRAINING SESSIONS DATA
+        // Add new training sessions here as they occur
+        const trainingSessions = [
+            {
+                id: 'session1',
+                name: 'May 27, 2025 Training',
+                date: 'Tuesday, May 27, 2025',
+                totalAttendees: 12,
+                participants: [
+                    {
+                        name: "Adi Renaldi",
+                        rating: 4,
+                        practices: ["Password management", "Diversifying email accounts", "Change passwords frequently", "Deactivating old accounts", "Encryption", "Premium VPN"],
+                        topics: ["VPN (with mixnet)", "Encryption (hard drive/documents)"]
+                    },
+                    {
+                        name: "Jelter Skelter",
+                        rating: 5,
+                        practices: ["Using VPN", "Delete old accounts", "Use dummy email"],
+                        topics: []
+                    },
+                    {
+                        name: "Nelfi Fernandez Reyes",
+                        rating: 5,
+                        practices: ["Using VPN", "Managing passwords"],
+                        topics: ["How to identify if mobile devices have been hacked"]
+                    },
+                    {
+                        name: "Isabel Harari",
+                        rating: 5,
+                        practices: ["Password management (1Password)", "Review unused accounts", "Logging out during travels"],
+                        topics: ["Digital security in fieldwork", "Protecting communication with sources"]
+                    },
+                    {
+                        name: "Joanna Kao",
+                        rating: 5,
+                        practices: ["WhatsApp FaceID setting"],
+                        topics: ["Setting up multiple believable accounts"]
+                    },
+                    {
+                        name: "Sushmita Na",
+                        rating: 5,
+                        practices: ["Password management", "Deleting old accounts", "Check emails", "Install VPN", "Update devices", "Phone backups", "Lock individual apps"],
+                        topics: ["Setting up VPN and passwords"]
+                    },
+                    {
+                        name: "Nico Schmidt",
+                        rating: 4,
+                        practices: ["Encrypted HD backup", "MFA in all apps"],
+                        topics: ["Securing data when collaborating digitally"]
+                    },
+                    {
+                        name: "Emily Fishbein",
+                        rating: 4,
+                        practices: ["Clear my desktop", "Install updates more regularly on my phone and laptop"],
+                        topics: ["More detailed step-by-step guidance at a basic level", "Advanced materials as add-ons or follow-up training"]
+                    }
+                ]
+            },
+            {
+                id: 'session2',
+                name: 'May 15, 2025 Training',
+                date: 'Thursday, May 15, 2025',
+                totalAttendees: 12,
+                participants: [
+                    {
+                        name: "Jessica Aldred",
+                        rating: 5,
+                        practices: ["Knowing my rights if my device is searched"],
+                        topics: []
+                    },
+                    {
+                        name: "Fernanda Bugga",
+                        rating: 5,
+                        practices: ["Not be logged in to apps or delete them entirely while traveling", "Read up on rights to cross borders", "2FA for personal emails and platforms"],
+                        topics: ["Source protection and how to best build infrastructure that keeps networks safe"]
+                    }
+                ]
+            }
+        ];
+        
+        let currentSessionIndex = 0;
+        let charts = {}; // Store chart instances for cleanup
+        
+        // Initialize the dashboard
+        function initDashboard() {
+            populateSessionSelector();
+            loadSession(trainingSessions[0].id);
+        }
+        
+        // Populate session selector dropdown
+        function populateSessionSelector() {
+            const selector = document.getElementById('sessionSelector');
+            selector.innerHTML = '';
+            
+            trainingSessions.forEach((session, index) => {
+                const option = document.createElement('option');
+                option.value = session.id;
+                option.textContent = session.name;
+                selector.appendChild(option);
+            });
+        }
+        
+        // Load a specific session
+        function loadSession(sessionId) {
+            const sessionIndex = trainingSessions.findIndex(s => s.id === sessionId);
+            if (sessionIndex === -1) return;
+            
+            currentSessionIndex = sessionIndex;
+            const session = trainingSessions[sessionIndex];
+            
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentSessionIndex === 0;
+            document.getElementById('nextBtn').disabled = currentSessionIndex === trainingSessions.length - 1;
+            document.getElementById('sessionSelector').value = sessionId;
+            
+            // Update date display
+            document.getElementById('trainingDateDisplay').textContent = `// Training Date: ${session.date} //`;
+            
+            // Clear existing content and charts
+            clearCharts();
+            
+            // Generate dashboard content
+            const dashboardContent = document.getElementById('dashboardContent');
+            dashboardContent.innerHTML = generateDashboardHTML(session);
+            
+            // Initialize charts for this session
+            initializeCharts(session);
+        }
+        
+        // Navigate to previous session
+        function previousSession() {
+            if (currentSessionIndex > 0) {
+                currentSessionIndex--;
+                loadSession(trainingSessions[currentSessionIndex].id);
+            }
+        }
+        
+        // Navigate to next session
+        function nextSession() {
+            if (currentSessionIndex < trainingSessions.length - 1) {
+                currentSessionIndex++;
+                loadSession(trainingSessions[currentSessionIndex].id);
+            }
+        }
+        
+        // Clear existing charts
+        function clearCharts() {
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+        }
+        
+        // Generate dashboard HTML
+        function generateDashboardHTML(session) {
+            const responseRate = Math.round((session.participants.length / session.totalAttendees) * 100);
+            const avgRating = (session.participants.reduce((sum, p) => sum + p.rating, 0) / session.participants.length).toFixed(1);
+            
+            return `
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h2>📊 SYSTEM STATISTICS</h2>
+                        <div class="stat-box">
+                            <h3>${session.totalAttendees}</h3>
+                            <p>Total Attendees</p>
+                        </div>
+                        <div class="stat-box">
+                            <h3>${responseRate}%</h3>
+                            <p>Response Rate</p>
+                        </div>
+                        <div class="stat-box">
+                            <h3>${avgRating}/5</h3>
+                            <p>Average Rating</p>
+                            <div style="color: #00ff00; text-align: center; margin-top: 20px; font-size: 0.9em;">
+                                <strong>[SUMMARY]</strong> ${session.participants.length} responses collected from ${session.totalAttendees} total attendees
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>⭐ TRAINING RATINGS</h2>
+                        <div class="chart-container">
+                            <canvas id="ratingsChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>🔐 SECURITY PROTOCOLS</h2>
+                        <div class="chart-container">
+                            <canvas id="practicesChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card centered-card">
+                        <h2>📚 KNOWLEDGE REQUESTS</h2>
+                        <div class="chart-container">
+                            <canvas id="topicsChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card full-width">
+                        <h2>👥 PARTICIPANT DATA STREAM</h2>
+                        <div class="participants-list" id="participantsList">
+                            ${generateParticipantsList(session.participants)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="insights-section">
+                    <h2>💡 THREAT ANALYSIS & INSIGHTS</h2>
+                    ${generateInsights(session)}
+                </div>
+            `;
+        }
+        
+        // Generate participants list HTML
+        function generateParticipantsList(participants) {
+            return participants.map(p => {
+                let stars = '';
+                for (let i = 0; i < 5; i++) {
+                    stars += i < p.rating ? '<span class="star">★</span>' : '<span class="star" style="opacity: 0.3">☆</span>';
+                }
+                
+                let topicsHtml = '';
+                if (p.topics.length > 0) {
+                    topicsHtml = '<p><strong>[KNOWLEDGE_REQUEST]</strong><br>' + 
+                        p.topics.map(t => `<span class="topic-tag">${t}</span>`).join(' ') + '</p>';
+                }
+                
+                return `
+                    <div class="participant-item">
+                        <h4>USER: ${p.name}</h4>
+                        <p><strong>[PROTOCOLS_TO_IMPLEMENT]</strong> ${p.practices.join(' | ')}</p>
+                        ${topicsHtml}
+                        <div class="rating-display">
+                            <strong>[RATING]</strong> ${stars}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Generate insights based on session data
+        function generateInsights(session) {
+            const passwordMgmtCount = session.participants.filter(p => 
+                p.practices.some(pr => pr.toLowerCase().includes('password'))
+            ).length;
+            const passwordPercent = Math.round((passwordMgmtCount / session.participants.length) * 100);
+            
+            const vpnCount = session.participants.filter(p => 
+                p.practices.some(pr => pr.toLowerCase().includes('vpn'))
+            ).length;
+            
+            const encryptionInterest = session.participants.filter(p => 
+                p.topics.some(t => t.toLowerCase().includes('encrypt')) ||
+                p.practices.some(pr => pr.toLowerCase().includes('encrypt'))
+            ).length;
+            
+            return `
+                <div class="insight-item">
+                    <span class="insight-icon">🔑</span>
+                    <div>
+                        <strong>[CRITICAL]</strong> Password Management is Top Priority: ${passwordPercent}% of participants identified password vulnerabilities requiring immediate patching.
+                    </div>
+                </div>
+                <div class="insight-item">
+                    <span class="insight-icon">🌐</span>
+                    <div>
+                        <strong>[HIGH]</strong> VPN Implementation Required: ${vpnCount} participants requesting secure tunnel protocols.
+                    </div>
+                </div>
+                <div class="insight-item">
+                    <span class="insight-icon">🔒</span>
+                    <div>
+                        <strong>[MEDIUM]</strong> Encryption Knowledge Gap: ${encryptionInterest} participants interested in cryptographic training.
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Initialize charts for the session
+        function initializeCharts(session) {
+            // Chart configuration
+            Chart.defaults.color = '#00ff00';
+            Chart.defaults.borderColor = '#00ff00';
+            Chart.defaults.font.family = 'Courier New, monospace';
+            Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            Chart.defaults.plugins.tooltip.borderColor = '#00ff00';
+            Chart.defaults.plugins.tooltip.borderWidth = 1;
+            Chart.defaults.plugins.tooltip.titleColor = '#00ff00';
+            Chart.defaults.plugins.tooltip.bodyColor = '#00ff00';
+            
+            // Process data
+            const ratingCounts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+            session.participants.forEach(p => ratingCounts[p.rating]++);
+            
+            const practiceCounts = {};
+            session.participants.forEach(p => {
+                p.practices.forEach(practice => {
+                    let normalized = practice.toLowerCase();
+                    if (normalized.includes('password')) {
+                        normalized = 'Password Management';
+                    } else if (normalized.includes('vpn')) {
+                        normalized = 'VPN Usage';
+                    } else if (normalized.includes('old account') || normalized.includes('unused account')) {
+                        normalized = 'Delete Old Accounts';
+                    } else if (normalized.includes('encrypt')) {
+                        normalized = 'Encryption';
+                    } else if (normalized.includes('mfa') || normalized.includes('multi-factor')) {
+                        normalized = 'Multi-Factor Authentication';
+                    } else {
+                        normalized = practice;
+                    }
+                    practiceCounts[normalized] = (practiceCounts[normalized] || 0) + 1;
+                });
+            });
+            
+            const topicCounts = {};
+            session.participants.forEach(p => {
+                p.topics.forEach(topic => {
+                    let normalized = topic;
+                    if (topic.toLowerCase().includes('vpn')) {
+                        normalized = 'VPN & Advanced Features';
+                    } else if (topic.toLowerCase().includes('encrypt')) {
+                        normalized = 'Encryption (Files/Drives)';
+                    } else if (topic.toLowerCase().includes('mobile')) {
+                        normalized = 'Mobile Security';
+                    } else if (topic.toLowerCase().includes('collaborat')) {
+                        normalized = 'Secure Collaboration';
+                    }
+                    topicCounts[normalized] = (topicCounts[normalized] || 0) + 1;
+                });
+            });
+            
+            // Create ratings chart
+            const ratingsCtx = document.getElementById('ratingsChart')?.getContext('2d');
+            if (ratingsCtx) {
+                charts.ratings = new Chart(ratingsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['5 Stars', '4 Stars', '3 Stars', '2 Stars', '1 Star'],
+                        datasets: [{
+                            data: [ratingCounts[5], ratingCounts[4], ratingCounts[3], ratingCounts[2], ratingCounts[1]],
+                            backgroundColor: [
+                                '#ff6347',  // Tomato red
+                                '#ffa500',  // Orange
+                                '#ffd700',  // Gold
+                                '#00ced1',  // Dark turquoise
+                                '#9370db'   // Medium purple
+                            ],
+                            borderColor: '#00ff00',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#00ff00',
+                                    font: {
+                                        family: 'Courier New, monospace'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Create practices chart as radar
+            const practicesCtx = document.getElementById('practicesChart')?.getContext('2d');
+            if (practicesCtx) {
+                const practiceLabels = Object.keys(practiceCounts).sort((a, b) => practiceCounts[b] - practiceCounts[a]).slice(0, 6);
+                const practiceData = practiceLabels.map(label => practiceCounts[label]);
+                
+                charts.practices = new Chart(practicesCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: practiceLabels,
+                        datasets: [{
+                            label: 'Implementation Priority',
+                            data: practiceData,
+                            backgroundColor: 'rgba(0, 255, 0, 0.2)',
+                            borderColor: '#00ff00',
+                            borderWidth: 2,
+                            pointBackgroundColor: [
+                                '#ff6347',      // Tomato
+                                '#ff1493',      // Deep pink
+                                '#ffa500',      // Orange
+                                '#ffd700',      // Gold
+                                '#00fa9a',      // Medium spring green
+                                '#00ced1'       // Dark turquoise
+                            ],
+                            pointBorderColor: '#00ff00',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: '#00ff00',
+                                    stepSize: 1,
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 255, 0, 0.2)'
+                                },
+                                pointLabels: {
+                                    color: '#00ff00',
+                                    font: {
+                                        size: 11,
+                                        family: 'Courier New, monospace'
+                                    },
+                                    callback: function(value) {
+                                        if (value.length > 20) {
+                                            return value.substring(0, 20) + '...';
+                                        }
+                                        return value;
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.raw + ' participants will implement this';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Create topics chart
+            const topicsCtx = document.getElementById('topicsChart')?.getContext('2d');
+            if (topicsCtx && Object.keys(topicCounts).length > 0) {
+                const topicLabels = Object.keys(topicCounts);
+                const topicData = topicLabels.map(label => topicCounts[label]);
+                
+                charts.topics = new Chart(topicsCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: topicLabels,
+                        datasets: [{
+                            data: topicData,
+                            backgroundColor: [
+                                '#ff4500',  // Orange red
+                                '#dc143c',  // Crimson
+                                '#ff69b4',  // Hot pink
+                                '#ffd700',  // Gold
+                                '#00fa9a',  // Medium spring green
+                                '#1e90ff',  // Dodger blue
+                                '#ff1493',  // Deep pink
+                                '#9370db',  // Medium purple
+                                '#00ced1',  // Dark turquoise
+                                '#f0e68c'   // Khaki
+                            ].slice(0, topicData.length),
+                            borderColor: '#00ff00',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 15,
+                                    color: '#00ff00',
+                                    font: {
+                                        family: 'Courier New, monospace'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Initialize dashboard on page load
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>
