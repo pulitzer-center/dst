@@ -140,7 +140,7 @@ Team Feedback → Data Analysis → Training Refinement → Better Outcomes
 3. **Benefits for Your Team**
    - Enhanced value proposition for your programs
    - Additional support for your journalists/fellows
-   - No additional budget required
+   - No additional budget required (unless we incorporate travel)
    - Customized content for your specific needs
    - Data on impact to share with stakeholders
 
