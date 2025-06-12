@@ -338,13 +338,13 @@
         </div>
         
         <div class="pagination-controls">
-            <button id="prevBtn" onclick="previousSession()">← Previous</button>
+            <button id="prevBtn" onclick="previousSession()">← Older</button>
             <div class="current-session">
                 <select id="sessionSelector" class="session-selector" onchange="loadSession(this.value)">
                     <!-- Options will be populated by JavaScript -->
                 </select>
             </div>
-            <button id="nextBtn" onclick="nextSession()">Next →</button>
+            <button id="nextBtn" onclick="nextSession()">Newer →</button>
         </div>
         
         <div id="dashboardContent">
@@ -355,6 +355,7 @@
     <script>
         // TRAINING SESSIONS DATA
         // Add new training sessions here as they occur
+        // IMPORTANT: Add newer sessions at the beginning of the array
         const trainingSessions = [
             {
                 id: 'session1',
@@ -440,6 +441,7 @@
         // Initialize the dashboard
         function initDashboard() {
             populateSessionSelector();
+            // Load the first session (most recent) by default
             loadSession(trainingSessions[0].id);
         }
         
@@ -465,8 +467,8 @@
             const session = trainingSessions[sessionIndex];
             
             // Update navigation buttons
-            document.getElementById('prevBtn').disabled = currentSessionIndex === 0;
-            document.getElementById('nextBtn').disabled = currentSessionIndex === trainingSessions.length - 1;
+            document.getElementById('prevBtn').disabled = currentSessionIndex === trainingSessions.length - 1;
+            document.getElementById('nextBtn').disabled = currentSessionIndex === 0;
             document.getElementById('sessionSelector').value = sessionId;
             
             // Update date display
@@ -483,18 +485,18 @@
             initializeCharts(session);
         }
         
-        // Navigate to previous session
+        // Navigate to previous session (older)
         function previousSession() {
-            if (currentSessionIndex > 0) {
-                currentSessionIndex--;
+            if (currentSessionIndex < trainingSessions.length - 1) {
+                currentSessionIndex++;
                 loadSession(trainingSessions[currentSessionIndex].id);
             }
         }
         
-        // Navigate to next session
+        // Navigate to next session (newer)
         function nextSession() {
-            if (currentSessionIndex < trainingSessions.length - 1) {
-                currentSessionIndex++;
+            if (currentSessionIndex > 0) {
+                currentSessionIndex--;
                 loadSession(trainingSessions[currentSessionIndex].id);
             }
         }
